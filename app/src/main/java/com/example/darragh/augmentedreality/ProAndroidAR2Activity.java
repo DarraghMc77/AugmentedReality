@@ -2,6 +2,9 @@ package com.example.darragh.augmentedreality;
 import android.app.Activity;
 import android.hardware.Camera;
 import android.hardware.SensorManager;
+import android.location.LocationManager;
+import android.location.LocationListener;
+import android.location.Location;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorEvent;
@@ -9,8 +12,15 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.content.pm.PackageManager;
 
 public class ProAndroidAR2Activity extends Activity {
+    /* GPS Constant Permission */
+    private static final int MY_PERMISSION_ACCESS_COARSE_LOCATION = 11;
+    private static final int MY_PERMISSION_ACCESS_FINE_LOCATION = 12;
+
     SurfaceView cameraPreview;
     SurfaceHolder previewHolder;
     Camera camera;
@@ -23,8 +33,19 @@ public class ProAndroidAR2Activity extends Activity {
     float pitchAngle;
     float rollAngle;
 
+    int accelerometerSensor;
+    float xAxis;
+    float yAxis;
+    float zAxis;
+
+    LocationManager locationManager;
+    double latitude;
+    double longitude;
+    double altitude;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // camera
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         inPreview = false;
@@ -33,11 +54,30 @@ public class ProAndroidAR2Activity extends Activity {
         previewHolder.addCallback(surfaceCallback);
         previewHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
+        // orientation
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         orientationSensor = Sensor.TYPE_ORIENTATION;
         sensorManager.registerListener(sensorEventListener,
         sensorManager.getDefaultSensor(orientationSensor),
         SensorManager.SENSOR_DELAY_NORMAL);
+
+        // accelerometer
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        orientationSensor = Sensor.TYPE_ORIENTATION;
+        accelerometerSensor = Sensor.TYPE_ACCELEROMETER;
+        sensorManager.registerListener(sensorEventListener, sensorManager
+                .getDefaultSensor(orientationSensor), SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(sensorEventListener, sensorManager
+                .getDefaultSensor(accelerometerSensor), SensorManager.SENSOR_DELAY_NORMAL);
+
+        //GPS
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        if ( ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
+
+            ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  },
+                    MY_PERMISSION_ACCESS_COARSE_LOCATION );
+        }
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 2, locationListener);
     }
 
     final SensorEventListener sensorEventListener = new SensorEventListener() {
@@ -50,15 +90,56 @@ public class ProAndroidAR2Activity extends Activity {
                 Log.d(TAG, "Pitch: " + String.valueOf(pitchAngle));
                 Log.d(TAG, "Roll: " + String.valueOf(rollAngle));
             }
+            else if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                xAxis = sensorEvent.values[0];
+                yAxis = sensorEvent.values[1];
+                zAxis = sensorEvent.values[2];
+                Log.d(TAG, "X Axis: " + String.valueOf(xAxis));
+                Log.d(TAG, "Y Axis: " + String.valueOf(yAxis));
+                Log.d(TAG, "Z Axis: " + String.valueOf(zAxis));
+            }
         }
         public void onAccuracyChanged (Sensor senor, int accuracy) {
             //Not used
         }
     };
 
-    @Override
+    LocationListener locationListener = new LocationListener() {
+        public void onLocationChanged(Location location) {
+            latitude = location.getLatitude();
+            longitude = location.getLongitude();
+            altitude = location.getAltitude();
+            Log.d(TAG, "Latitude: " + String.valueOf(latitude));
+            Log.d(TAG, "Longitude: " + String.valueOf(longitude));
+            Log.d(TAG, "Altitude: " + String.valueOf(altitude));
+        }
+
+        public void onProviderDisabled(String arg0) {
+            // TODO Auto-generated method stub
+        }
+        public void onProviderEnabled(String arg0) {
+            // TODO Auto-generated method stub
+        }
+        public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
+            // TODO Auto-generated method stub
+        }
+    };
+
+
+            @Override
     public void onResume() {
         super.onResume();
+        if ( ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
+
+            ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  },
+                    MY_PERMISSION_ACCESS_COARSE_LOCATION );
+        }
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000,
+                2, locationListener);
+        sensorManager.registerListener(sensorEventListener, sensorManager
+                .getDefaultSensor(orientationSensor), SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(sensorEventListener, sensorManager
+                .getDefaultSensor(accelerometerSensor), SensorManager.SENSOR_DELAY_NORMAL);
         camera=Camera.open();
     }
 
@@ -67,6 +148,8 @@ public class ProAndroidAR2Activity extends Activity {
         if (inPreview) {
             camera.stopPreview();
         }
+        locationManager.removeUpdates(locationListener);
+        sensorManager.unregisterListener(sensorEventListener);
         camera.release();
         camera=null;
         inPreview=false;
