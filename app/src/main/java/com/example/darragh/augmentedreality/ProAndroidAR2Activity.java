@@ -15,6 +15,7 @@ import android.view.SurfaceView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.content.pm.PackageManager;
+import android.widget.TextView;
 
 public class ProAndroidAR2Activity extends Activity {
     /* GPS Constant Permission */
@@ -42,6 +43,16 @@ public class ProAndroidAR2Activity extends Activity {
     double latitude;
     double longitude;
     double altitude;
+
+    TextView xAxisValue;
+    TextView yAxisValue;
+    TextView zAxisValue;
+    TextView headingValue;
+    TextView pitchValue;
+    TextView rollValue;
+    TextView altitudeValue;
+    TextView latitudeValue;
+    TextView longitudeValue;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -71,6 +82,7 @@ public class ProAndroidAR2Activity extends Activity {
                 .getDefaultSensor(accelerometerSensor), SensorManager.SENSOR_DELAY_NORMAL);
 
         //GPS
+        //TODO: fix permissions
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         if ( ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
 
@@ -78,6 +90,17 @@ public class ProAndroidAR2Activity extends Activity {
                     MY_PERMISSION_ACCESS_COARSE_LOCATION );
         }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 2, locationListener);
+
+        // Values on Screen
+        xAxisValue = (TextView) findViewById(R.id.xAxisValue);
+        yAxisValue = (TextView) findViewById(R.id.yAxisValue);
+        zAxisValue = (TextView) findViewById(R.id.zAxisValue);
+        headingValue = (TextView) findViewById(R.id.headingValue);
+        pitchValue = (TextView) findViewById(R.id.pitchValue);
+        rollValue = (TextView) findViewById(R.id.rollValue);
+        altitudeValue = (TextView) findViewById(R.id.altitudeValue);
+        longitudeValue = (TextView) findViewById(R.id.longitudeValue);
+        latitudeValue = (TextView) findViewById(R.id.latitudeValue);
     }
 
     final SensorEventListener sensorEventListener = new SensorEventListener() {
@@ -86,17 +109,27 @@ public class ProAndroidAR2Activity extends Activity {
                 headingAngle = sensorEvent.values[0];
                 pitchAngle = sensorEvent.values[1];
                 rollAngle = sensorEvent.values[2];
+
                 Log.d(TAG, "Heading: " + String.valueOf(headingAngle));
                 Log.d(TAG, "Pitch: " + String.valueOf(pitchAngle));
                 Log.d(TAG, "Roll: " + String.valueOf(rollAngle));
+
+                headingValue.setText(String.valueOf(headingAngle));
+                pitchValue.setText(String.valueOf(pitchAngle));
+                rollValue.setText(String.valueOf(rollAngle));
             }
             else if (sensorEvent.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 xAxis = sensorEvent.values[0];
                 yAxis = sensorEvent.values[1];
                 zAxis = sensorEvent.values[2];
+
                 Log.d(TAG, "X Axis: " + String.valueOf(xAxis));
                 Log.d(TAG, "Y Axis: " + String.valueOf(yAxis));
                 Log.d(TAG, "Z Axis: " + String.valueOf(zAxis));
+
+                xAxisValue.setText(String.valueOf(xAxis));
+                yAxisValue.setText(String.valueOf(yAxis));
+                zAxisValue.setText(String.valueOf(zAxis));
             }
         }
         public void onAccuracyChanged (Sensor senor, int accuracy) {
@@ -109,9 +142,14 @@ public class ProAndroidAR2Activity extends Activity {
             latitude = location.getLatitude();
             longitude = location.getLongitude();
             altitude = location.getAltitude();
+
             Log.d(TAG, "Latitude: " + String.valueOf(latitude));
             Log.d(TAG, "Longitude: " + String.valueOf(longitude));
             Log.d(TAG, "Altitude: " + String.valueOf(altitude));
+
+            latitudeValue.setText(String.valueOf(latitude));
+            longitudeValue.setText(String.valueOf(longitude));
+            altitudeValue.setText(String.valueOf(altitude));
         }
 
         public void onProviderDisabled(String arg0) {
@@ -129,6 +167,8 @@ public class ProAndroidAR2Activity extends Activity {
             @Override
     public void onResume() {
         super.onResume();
+
+        //TODO: fix permissions
         if ( ContextCompat.checkSelfPermission( this, android.Manifest.permission.ACCESS_COARSE_LOCATION ) != PackageManager.PERMISSION_GRANTED ) {
 
             ActivityCompat.requestPermissions( this, new String[] {  android.Manifest.permission.ACCESS_COARSE_LOCATION  },
